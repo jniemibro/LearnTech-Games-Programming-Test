@@ -6,7 +6,8 @@ namespace LearnTechGamesTest
     using SceneManager = UnityEngine.SceneManagement.SceneManager;
     using TMPro;
 
-    public class Game : MonoBehaviour
+    [DisallowMultipleComponent]
+    public sealed class Game : MonoBehaviour
     {
         enum GameState
         {
@@ -19,6 +20,7 @@ namespace LearnTechGamesTest
         #region FIELDS
 
         public static int questionIndex = 1;
+        int lastAnswer = 0;
 
         GameState state = GameState.Play;
 
@@ -29,6 +31,7 @@ namespace LearnTechGamesTest
         [SerializeField] TMP_Text[] answerTexts;
 
         float delayTimer = SLIDE_DURATION;
+        int counter = -1;
 
         static readonly Color CORRECT_COLOR = Color.green;
         static readonly Color WRONG_COLOR = Color.red;
@@ -74,7 +77,17 @@ namespace LearnTechGamesTest
 
                 case GameState.Correct:
                     if (delayTimer <= 0)
-                        AdvanceQuestion();
+                    {
+                        counter++;
+                        if (counter > lastAnswer)
+                        {
+                            AdvanceQuestion();
+                            return;
+                        }
+                        BounceAnswerButton(counter);
+                        delayTimer = 0.5f;
+
+                    }
                     break;
             }
 
@@ -118,8 +131,10 @@ namespace LearnTechGamesTest
             if (IsBusy())
                 return;
 
+            lastAnswer = answerIndex;
             if (answerIndex == (questionIndex - 1))
             {
+                SFX.PlaySound(4.0f);
                 Debug.Log("Correct!");
                 answerTexts[answerIndex].color = CORRECT_COLOR;
                 questionText.color = CORRECT_COLOR;
@@ -129,6 +144,7 @@ namespace LearnTechGamesTest
             }
             else
             {
+                SFX.PlaySound(0.75f);
                 Debug.Log("Wrong!");
                 answerTexts[answerIndex].color = WRONG_COLOR;
             }
@@ -139,6 +155,18 @@ namespace LearnTechGamesTest
             for (int i = 0; i < answerTexts.Length; i++)
             {
                 answerTexts[i].color = DEFAULT_COLOR;
+                answerTexts[i].gameObject.SetActive(true);
+            }
+        }
+
+        void SetLastVisibleAnswerText(int k)
+        {
+            for (int i = 0; i < answerTexts.Length; i++)
+            {
+                if (i < k && i != k)
+                    answerTexts[i].color = Color.yellow;
+                else
+                    answerTexts[i].gameObject.SetActive(i == k);
             }
         }
 
@@ -147,6 +175,15 @@ namespace LearnTechGamesTest
             // on exit
             switch (state)
             {
+                /*case GameState.SlideIn:
+                    // reset slide in animation
+                    if (nextState == GameState.SlideIn)
+                    {
+                        delayTimer = SLIDE_DURATION / 2f;
+                        bgAnimator.SetTrigger(SLIDE_IN_TRIGGER);
+                    }
+                    break;*/
+
                 case GameState.SlideOut:
                     FinalizeQuestionSwap();
                     break;
@@ -173,7 +210,8 @@ namespace LearnTechGamesTest
                     break;
 
                 case GameState.Correct:
-                    delayTimer = 1f;
+                    SetLastVisibleAnswerText(lastAnswer);
+                    counter = -1;
                     break;
             }
         }
@@ -209,6 +247,7 @@ namespace LearnTechGamesTest
 
         public void AnswerButton(Transform t)
         {
+            SFX.PlaySound();
             // order of children should directly correspond to the number they represent
             int answerIndex = t.GetSiblingIndex();
 
@@ -221,10 +260,20 @@ namespace LearnTechGamesTest
 
         public void QuitGame()
         {
+            SFX.PlaySound();
             SceneManager.LoadScene(0);
         }
 
         #endregion
+
+        void BounceAnswerButton(int i)
+        {
+            Debug.Assert(i >= 0);
+            Debug.Assert(i < answerTexts.Length);
+            Animator answerAnimator = answerTexts[i].GetComponentInParent<Animator>();
+            if (answerAnimator)
+                answerAnimator.SetTrigger("Bounce Trigger");
+        }
 
         bool IsBusy()
         {

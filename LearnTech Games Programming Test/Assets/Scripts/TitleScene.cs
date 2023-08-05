@@ -4,7 +4,8 @@ namespace LearnTechGamesTest
     using UnityEngine.UI;
     using SceneManager = UnityEngine.SceneManagement.SceneManager;
 
-    public class TitleScene : MonoBehaviour
+    [DisallowMultipleComponent]
+    public sealed class TitleScene : MonoBehaviour
     {
         [SerializeField] Button loadButton;
         [SerializeField] Button quitButton;
@@ -24,12 +25,14 @@ namespace LearnTechGamesTest
 
         public void NewGame()
         {
+            SFX.PlaySound();
             Game.ResetSaveState();
             SceneManager.LoadScene(GAMEPLAY_SCENE_INDEX);
         }
 
         public void LoadGame()
         {
+            SFX.PlaySound();
             Game.LoadSaveState();
             SceneManager.LoadScene(GAMEPLAY_SCENE_INDEX);
         }
