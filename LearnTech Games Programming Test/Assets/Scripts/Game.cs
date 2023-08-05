@@ -84,6 +84,15 @@ namespace LearnTechGamesTest
                 delayTimer -= Time.deltaTime;
         }
 
+#if UNITY_EDITOR
+
+        void OnGUI()
+        {
+            GUILayout.Label("State = " + state.ToString());
+        }
+
+#endif
+
         void UpdateQuestionText()
         {
             questionText.text = questionIndex.ToString();
@@ -138,17 +147,8 @@ namespace LearnTechGamesTest
             // on exit
             switch (state)
             {
-                case GameState.Correct:
-                    delayTimer = 1.0f;
-                    break;
-
                 case GameState.SlideOut:
                     FinalizeQuestionSwap();
-                    delayTimer = SLIDE_DURATION / 2f;
-                    break;
-
-                default:
-                    delayTimer = SLIDE_DURATION / 2f;
                     break;
             }
 
@@ -163,11 +163,17 @@ namespace LearnTechGamesTest
             switch (state)
             {
                 case GameState.SlideIn:
+                    delayTimer = SLIDE_DURATION / 2f;
                     bgAnimator.SetTrigger(SLIDE_IN_TRIGGER);
                     break;
 
                 case GameState.SlideOut:
+                    delayTimer = SLIDE_DURATION / 2f;
                     bgAnimator.SetTrigger(SLIDE_OUT_TRIGGER);
+                    break;
+
+                case GameState.Correct:
+                    delayTimer = 1f;
                     break;
             }
         }
