@@ -3,6 +3,7 @@ namespace LearnTechGamesTest
     using System.Collections;
     using System.Collections.Generic;
     using UnityEngine;
+    using UnityEngine.UI;
     using SceneManager = UnityEngine.SceneManagement.SceneManager;
     using TMPro;
 
@@ -19,17 +20,19 @@ namespace LearnTechGamesTest
 
         #region FIELDS
 
-        public static int questionIndex = 1;
+        public static int questionNumber = 1;
         int lastAnswer = 0;
 
-        GameState state = GameState.Play;
+        GameState state = GameState.SlideIn;
 
+        [SerializeField] Image bgImage; 
         [SerializeField] Animator bgAnimator;
 
         [Space()]
         [SerializeField] TMP_Text questionText;
         [SerializeField] TMP_Text[] answerTexts;
 
+        Color defaultBgImageColor;
         float delayTimer = SLIDE_DURATION;
         int counter = -1;
 
@@ -40,6 +43,7 @@ namespace LearnTechGamesTest
         const string QUESTION_INDEX_SAVE_KEY = Constants.QUESTION_INDEX_SAVE_KEY;
         const string SLIDE_OUT_TRIGGER = "Slide Out Trigger";
         const string SLIDE_IN_TRIGGER = "Slide In Trigger";
+        const string BOUNCE_TRIGGER = "Bounce Trigger";
         const float TEXT_FADE_SPEED = Constants.TEXT_FADE_SPEED;
         const float SLIDE_DURATION = 0.664f; // animation lengths
 
@@ -47,6 +51,8 @@ namespace LearnTechGamesTest
 
         void Start()
         {
+            defaultBgImageColor = bgImage.color;
+
             UpdateQuestionText();
             SetupAnswerButtons();
         }
@@ -81,10 +87,16 @@ namespace LearnTechGamesTest
                         counter++;
                         if (counter > lastAnswer)
                         {
-                            AdvanceQuestion();
+                            AdvanceQuestion_Discrete();
                             return;
                         }
-                        BounceAnswerButton(counter);
+                        if (counter >= 0)
+                        {
+                            if (counter == lastAnswer)
+                                BounceQuestionText();
+                            BounceAnswerButton(counter);
+                            SFX.PlaySound(GetIndexTone(counter));
+                        }
                         delayTimer = 0.5f;
 
                     }
@@ -92,7 +104,8 @@ namespace LearnTechGamesTest
             }
 
             // fade question text back to white
-            questionText.color = Color.Lerp(questionText.color, DEFAULT_COLOR, TEXT_FADE_SPEED * Time.deltaTime);
+            questionText.color = Color.Lerp(questionText.color, DEFAULT_COLOR, TEXT_FADE_SPEED * Time.smoothDeltaTime);
+            bgImage.color = Color.Lerp(bgImage.color, defaultBgImageColor, TEXT_FADE_SPEED * Time.smoothDeltaTime);
             if (delayTimer > 0)
                 delayTimer -= Time.deltaTime;
         }
@@ -108,15 +121,15 @@ namespace LearnTechGamesTest
 
         void UpdateQuestionText()
         {
-            questionText.text = questionIndex.ToString();
+            questionText.text = questionNumber.ToString();
         }
 
         void NextQuestion()
         {
             //questionText.color = Color.yellow;
-            questionIndex += 1;
-            if (questionIndex >= 10)
-                questionIndex = 1;
+            questionNumber += 1;
+            if (questionNumber >= 10)
+                questionNumber = 1;
         }
 
         void FinalizeQuestionSwap()
@@ -132,10 +145,12 @@ namespace LearnTechGamesTest
                 return;
 
             lastAnswer = answerIndex;
-            if (answerIndex == (questionIndex - 1))
+            if (answerIndex == (questionNumber - 1))
             {
-                SFX.PlaySound(4.0f);
-                Debug.Log("Correct!");
+                //SFX.PlaySound(4.0f);
+                //Debug.Log("Correct!");
+                BounceQuestionText();
+                bgImage.color = CORRECT_COLOR;
                 answerTexts[answerIndex].color = CORRECT_COLOR;
                 questionText.color = CORRECT_COLOR;
                 ChangeGameState(GameState.Correct);
@@ -144,8 +159,10 @@ namespace LearnTechGamesTest
             }
             else
             {
-                SFX.PlaySound(0.75f);
-                Debug.Log("Wrong!");
+                questionText.color = WRONG_COLOR;
+                bgImage.color = WRONG_COLOR;
+                SFX.PlaySound(GetIndexTone(lastAnswer));
+                //Debug.Log("Wrong!");
                 answerTexts[answerIndex].color = WRONG_COLOR;
             }
         }
@@ -199,6 +216,11 @@ namespace LearnTechGamesTest
             // on enter
             switch (state)
             {
+                case GameState.Play:
+                    BounceQuestionText();
+                    SFX.PlaySound( GetIndexTone(questionNumber-1) );
+                    break;
+
                 case GameState.SlideIn:
                     delayTimer = SLIDE_DURATION / 2f;
                     bgAnimator.SetTrigger(SLIDE_IN_TRIGGER);
@@ -210,8 +232,9 @@ namespace LearnTechGamesTest
                     break;
 
                 case GameState.Correct:
+                    SFX.PlaySound(GetIndexTone(lastAnswer));
                     SetLastVisibleAnswerText(lastAnswer);
-                    counter = -1;
+                    counter = -2; // give clicked button a chance to play with an extra negative iteration
                     break;
             }
         }
@@ -220,19 +243,19 @@ namespace LearnTechGamesTest
 
         internal static void ResetSaveState()
         {
-            questionIndex = 1;
+            questionNumber = 1;
             SaveSaveState();
         }
 
         internal static void LoadSaveState()
         {
-            questionIndex = PlayerPrefs.GetInt(QUESTION_INDEX_SAVE_KEY);
-            questionIndex = Mathf.Clamp(questionIndex, 1, 10);
+            questionNumber = PlayerPrefs.GetInt(QUESTION_INDEX_SAVE_KEY);
+            questionNumber = Mathf.Clamp(questionNumber, 1, 10);
         }
 
         static void SaveSaveState()
         {
-            PlayerPrefs.SetInt(QUESTION_INDEX_SAVE_KEY, questionIndex);
+            PlayerPrefs.SetInt(QUESTION_INDEX_SAVE_KEY, questionNumber);
         }
 
         #endregion
@@ -241,19 +264,25 @@ namespace LearnTechGamesTest
 
         public void AdvanceQuestion()
         {
+            SFX.PlaySound();
+            AdvanceQuestion_Discrete();
+        }
+
+        void AdvanceQuestion_Discrete()
+        {
             NextQuestion();
             ChangeGameState(GameState.SlideOut);
         }
 
         public void AnswerButton(Transform t)
         {
-            SFX.PlaySound();
+            //SFX.PlaySound();
             // order of children should directly correspond to the number they represent
             int answerIndex = t.GetSiblingIndex();
 
             Animator answerAnimator = t.GetComponent<Animator>();
             if (answerAnimator)
-                answerAnimator.SetTrigger("Bounce Trigger");
+                answerAnimator.SetTrigger(BOUNCE_TRIGGER);
 
             VerifyAnswer(answerIndex);
         }
@@ -266,18 +295,30 @@ namespace LearnTechGamesTest
 
         #endregion
 
+        void BounceQuestionText()
+        {
+            Animator animator = questionText.GetComponent<Animator>();
+            if (animator)
+                animator.SetTrigger(BOUNCE_TRIGGER);
+        }
+
         void BounceAnswerButton(int i)
         {
             Debug.Assert(i >= 0);
             Debug.Assert(i < answerTexts.Length);
             Animator answerAnimator = answerTexts[i].GetComponentInParent<Animator>();
             if (answerAnimator)
-                answerAnimator.SetTrigger("Bounce Trigger");
+                answerAnimator.SetTrigger(BOUNCE_TRIGGER);
         }
 
         bool IsBusy()
         {
             return state != GameState.Play;
+        }
+
+        float GetIndexTone(int i)
+        {
+            return 2f + (i / 8f);
         }
 
 #if UNITY_EDITOR

@@ -32,7 +32,7 @@ namespace LearnTechGamesTest
             //    instance = null;
         }
 
-        public static void PlaySound(float pitch = 2.0f)
+        public static void PlaySound(float pitch = 3.0f)
         {
             instance.audioPlayer.Stop();
             instance.audioPlayer.pitch = pitch;

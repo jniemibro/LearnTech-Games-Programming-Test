@@ -482,6 +482,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cb0213bb68be44079673bf25534ad08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  bgImage: {fileID: 5600348643448050477}
   bgAnimator: {fileID: 920570079}
   questionText: {fileID: 1845842581}
   answerTexts:
@@ -1008,6 +1009,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3217070752651693306, guid: bdf15f153f91f4a87916aaa145676496, type: 3}
   m_PrefabInstance: {fileID: 5600348643448050475}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5600348643448050477 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1045191930235659515, guid: bdf15f153f91f4a87916aaa145676496, type: 3}
+  m_PrefabInstance: {fileID: 5600348643448050475}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &6858773094624296484
 PrefabInstance:
   m_ObjectHideFlags: 0
